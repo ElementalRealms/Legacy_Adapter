@@ -1,0 +1,10 @@
+﻿[package]
+
+name = "elemental_realms_legacy_adapter"
+version = "0.0.100"
+authors = [ "Elemental Realms <github.com/ElementalRealms>" ]
+
+[dependencies]
+
+json = "0.11.13"
+mysql = "*"
