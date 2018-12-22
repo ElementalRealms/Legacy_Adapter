@@ -1,6 +1,8 @@
 /*
     Developer note: The zip format is currently not being supported due to security concerns(may be supported later on)
 */
+//TODO POST RELEASE zip support
+//TODO forge, mods,clientmods,servermods
 
 extern crate json;
 extern crate mysql;
@@ -16,22 +18,21 @@ fn main() {
         //Gets database name from mysql string
         let mut db_name = String::new();
         for chars in arg1.chars() {
-            if (chars == '/') {
+            if chars == '/' {
                 db_name = String::new();
             } else {
                 db_name.push(chars);
             }
         }
         println!("ER Legacy Adapter Version {}", CURRENT_VERSION);
-        //DEBUG
+        //TODO DEBUG
         println!("{}", arg1);
 
-        //DEBUG
+        //NOTE
         //  mysql://ermlpublicread:hmDmxuhheilgKXUWTjzC@db.elementalrealms.net/ElementalRealms
+        //TODO add optional path variables for version and mod export
+        //let str_path = args().nth(2).unwrap_or(".".to_string());
 
-        let str_path = args().nth(2).unwrap_or(".".to_string());
-        //add /ER_MySQL_versions.json when exporting
-        //DEBUG
         let mut _mods_all: Vec<ModEr> = vec![];
         match Pool::new(&arg1) {
             Ok(pool) => {
@@ -79,46 +80,91 @@ fn main() {
 
         let mut json_export = json::JsonValue::new_object();
         for mysqlv in _mysql_legacy {
-            json_export["versions"][&mysqlv.version]["global"]["git"] = json::JsonValue::new_array();
-            match git_url(&mysqlv.config, &db_name, "MC_Badge".to_string()){
+            json_export["versions"][&mysqlv.version]["global"]["git"] =
+                json::JsonValue::new_array();
+
+            if !(&mysqlv.config == "null" || &mysqlv.config == "") {
+                match git_url(mysqlv.config.clone(), &db_name, "MC_Configs".to_string()) {
                     Ok(a) => {
-                            json_export["versions"][&mysqlv.version]["global"]["git"].push(a).unwrap();
-                        },
-                    Err(_) => println!("Failed to add:{} to {}", &mysqlv.config, &mysqlv.version)
+                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                            .push(a)
+                            .unwrap();
+                    }
+                    Err(_) => println!("Failed to add:{} to {}", &mysqlv.config, &mysqlv.version),
                 }
-            json_export["versions"][&mysqlv.version]["global"]["wget"] = json::JsonValue::new_array();
-            if mysqlv.biome != "null" {
-                //json_export["versions"][&mysqlv.version]["global"]["zip"].push(git_url(mysqlv.biome, db_name));
             }
+            if !(&mysqlv.biome == "null" || &mysqlv.biome == "") {
+                match git_url(mysqlv.biome.clone(), &db_name, "MC_Biome".to_string()) {
+                    Ok(a) => {
+                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                            .push(a)
+                            .unwrap();
+                    }
+                    Err(_) => println!("Failed to add:{} to {}", &mysqlv.biome, &mysqlv.version),
+                }
+            }
+            if !(&mysqlv.script == "null" || &mysqlv.script == "") {
+                match git_url(mysqlv.script.clone(), &db_name, "MC_Script".to_string()) {
+                    Ok(a) => {
+                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                            .push(a)
+                            .unwrap();
+                    }
+                    Err(_) => println!("Failed to add:{} to {}", &mysqlv.script, &mysqlv.version),
+                }
+            }
+            if !(&mysqlv.badge == "null" || &mysqlv.badge == "") {
+                match git_url(mysqlv.badge.clone(), &db_name, "MC_Badge".to_string()) {
+                    Ok(a) => {
+                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                            .push(a)
+                            .unwrap();
+                    }
+                    Err(_) => println!("Failed to add:{} to {}", &mysqlv.badge, &mysqlv.version),
+                }
+            }
+            //Mods download
+            json_export["versions"][&mysqlv.version]["global"]["wget"] =
+                json::JsonValue::new_array();
         }
 
         //the logic behind this function is ported from the legacy client for consistency
-        fn git_url(in_url: &String, db_name: &String, repo : String) -> Result<json::JsonValue, bool> {
+        fn git_url(
+            mut in_url: String,
+            db_name: &String,
+            repo: String,
+        ) -> Result<json::JsonValue, bool> {
             let mut used_url = json::JsonValue::new_object();
-            used_url["url"] = in_url.clone().into();
-            if !(in_url.starts_with("http") || in_url.starts_with("https")) 
-            {
-                if in_url.to_lowercase().contains("github.com"){
-                        //TODO Complex return tree stuff
-                }else{
-                    used_url["url"][0] = format!("https://github.com/{}/{}.git", &db_name, repo).into();
+            used_url["url"][0] = format!("https://github.com/{}/{}.git", &db_name, repo).into();
+
+            if in_url.to_lowercase().contains("github.com") {
+                in_url = in_url
+                    .clone()
+                    .split_off(in_url.rfind("/archive/").unwrap() + 9);
+                in_url.pop();
+                in_url.pop();
+                in_url.pop();
+                in_url.pop();
+                used_url["commit"] = in_url.clone().into();
+                return Ok(used_url);
+            } else {
+                if !(in_url.starts_with("http") || in_url.starts_with("https")) {
                     used_url["commit"] = in_url.clone().into();
                     return Ok(used_url);
                 }
-                used_url["url"] = format!("https://github.com/{}/{}", db_name, &in_url).into();
             }
             Err(true)
         }
 
-        //DEBUG
+        //TODO
         println!("{:#}", json_export);
 
-        /* Version name print
-        for valu in json_export["versions"].entries() {
-            let (v_name, _) = valu;
-            println!("{:?}", v_name);
-        }
-        */
+    /*TODO
+    for valu in json_export["versions"].entries() {
+        let (v_name, _) = valu;
+        println!("{:?}", v_name);
+    }
+    */
     } else {
         println!("Must be URL encoded,\n accepted format:\n mysql://USERNAME:PASSWORD@IP/DATABASE_NAME [EXPORT_FOLDER_PATH]");
     }
