@@ -25,8 +25,6 @@ fn main() {
             }
         }
         println!("ER Legacy Adapter Version {}", CURRENT_VERSION);
-        //TODO DEBUG
-        println!("{}", arg1);
 
         //NOTE
         //  mysql://ermlpublicread:hmDmxuhheilgKXUWTjzC@db.elementalrealms.net/ElementalRealms
@@ -80,23 +78,23 @@ fn main() {
 
         let mut json_export = json::JsonValue::new_object();
         for mysqlv in _mysql_legacy {
-            json_export["versions"][&mysqlv.version]["global"]["git"] =
-                json::JsonValue::new_array();
+            json_export["mc"]["version"][&mysqlv.version]["global"] = json::JsonValue::new_array();
 
             if !(&mysqlv.config == "null" || &mysqlv.config == "") {
                 match git_url(mysqlv.config.clone(), &db_name, "MC_Configs".to_string()) {
                     Ok(a) => {
-                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                        json_export["mc"]["version"][&mysqlv.version]["global"]
                             .push(a)
                             .unwrap();
                     }
                     Err(_) => println!("Failed to add:{} to {}", &mysqlv.config, &mysqlv.version),
                 }
             }
+
             if !(&mysqlv.biome == "null" || &mysqlv.biome == "") {
                 match git_url(mysqlv.biome.clone(), &db_name, "MC_Biome".to_string()) {
                     Ok(a) => {
-                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                        json_export["mc"]["version"][&mysqlv.version]["global"]
                             .push(a)
                             .unwrap();
                     }
@@ -106,7 +104,7 @@ fn main() {
             if !(&mysqlv.script == "null" || &mysqlv.script == "") {
                 match git_url(mysqlv.script.clone(), &db_name, "MC_Script".to_string()) {
                     Ok(a) => {
-                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                        json_export["mc"]["version"][&mysqlv.version]["global"]
                             .push(a)
                             .unwrap();
                     }
@@ -116,16 +114,15 @@ fn main() {
             if !(&mysqlv.badge == "null" || &mysqlv.badge == "") {
                 match git_url(mysqlv.badge.clone(), &db_name, "MC_Badge".to_string()) {
                     Ok(a) => {
-                        json_export["versions"][&mysqlv.version]["global"]["git"]
+                        json_export["mc"]["version"][&mysqlv.version]["global"]
                             .push(a)
                             .unwrap();
                     }
                     Err(_) => println!("Failed to add:{} to {}", &mysqlv.badge, &mysqlv.version),
                 }
             }
-            //Mods download
-            json_export["versions"][&mysqlv.version]["global"]["wget"] =
-                json::JsonValue::new_array();
+            //NOTE Mods download
+            //json_export["mc"]["version"][&mysqlv.version]["global"]["wget"] =json::JsonValue::new_array();
         }
 
         //the logic behind this function is ported from the legacy client for consistency
