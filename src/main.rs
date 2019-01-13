@@ -2,7 +2,9 @@
     Developer note: The zip format is currently not being supported due to security concerns(may be supported later on)
 */
 //TODO POST RELEASE zip support
+
 //TODO forge, mods,clientmods,servermods
+//TODO run arg  for resolving branch versions into commit hash (Probably request every input)
 
 extern crate json;
 extern crate mysql;
@@ -133,7 +135,7 @@ fn main() {
         ) -> Result<json::JsonValue, bool> {
             let mut used_url = json::JsonValue::new_object();
             used_url["url"][0] = format!("https://github.com/{}/{}.git", &db_name, repo).into();
-
+            used_url["function"] = "git".into();
             if in_url.to_lowercase().contains("github.com") {
                 in_url = in_url
                     .clone()
@@ -143,11 +145,11 @@ fn main() {
                 in_url.pop();
                 in_url.pop();
                 used_url["commit"] = in_url.clone().into();
-                return Ok(used_url);
+                return Ok(json::array![used_url]);
             } else {
                 if !(in_url.starts_with("http") || in_url.starts_with("https")) {
                     used_url["commit"] = in_url.clone().into();
-                    return Ok(used_url);
+                    return Ok(json::array![used_url]);
                 }
             }
             Err(true)
