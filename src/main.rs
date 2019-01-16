@@ -1,21 +1,26 @@
 /*
-    Developer note: The zip format is currently not being supported due to security concerns(may be supported later on)
+    Developer note: The zip format is currently not being supported due to security concerns and priorities(may be supported later on)
 */
-//TODO POST RELEASE zip support
+//TODO POST RELEASE
+//  -zip support
 
-//TODO forge, mods,clientmods,servermods
-//TODO run arg  for resolving branch versions into commit hash (Probably request every input)
+//TODO
+//  -mods
+//  -clientmods
+//  -servermods
 
 extern crate json;
 extern crate mysql;
 use mysql::Pool;
 use std::env::{args, current_dir};
 use std::io::{self, Write};
-use std::{path::Path, vec::Vec};
+use std::{fs, path::Path, vec::Vec};
 
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
+    println!("ER Legacy Adapter Version {}", CURRENT_VERSION);
+
     if let Some(arg1) = args().nth(1) {
         //Gets database name from mysql string
         let mut db_name = String::new();
@@ -26,12 +31,27 @@ fn main() {
                 db_name.push(chars);
             }
         }
-        println!("ER Legacy Adapter Version {}", CURRENT_VERSION);
 
+        //Argument handler
+        let mut debug = false;
+        let mut export_mods: Option<String> = None;
+        let mut export_versions: Option<String> = None;
+        for arg_num in 2..args().count() {
+            match &args().nth(arg_num).unwrap() as &str {
+                "Em" => export_mods = args().nth(arg_num + 1),
+                "Ev" => export_versions = args().nth(arg_num + 1),
+                "forge" | "Forge" => {} //TODO
+                "PS" | "ps" => {
+                    debug = true;
+                }
+                _ => {}
+            }
+        }
+        if debug {
+            println!("Enabled debug text");
+        }
         //NOTE
         //  mysql://ermlpublicread:hmDmxuhheilgKXUWTjzC@db.elementalrealms.net/ElementalRealms
-        //TODO add optional path variables for version and mod export
-        //let str_path = args().nth(2).unwrap_or(".".to_string());
 
         let mut _mods_all: Vec<ModEr> = vec![];
         match Pool::new(&arg1) {
@@ -51,6 +71,24 @@ fn main() {
             }
             Err(a) => {
                 println!("{}", a);
+            }
+        }
+        if debug {
+            println!("Obtained mods");
+        }
+        if let Some(ex_mods) = export_mods {
+            let mut json_data = json::JsonValue::new_array();
+            if !_mods_all[0].is_empty() {
+                for _mod in &_mods_all {
+                    let mut data = json::JsonValue::new_object();
+                    data["name"] = _mod.name.clone().into();
+                    data["url"] = _mod.url.clone().into();
+                    json_data.push(data).unwrap();
+                }
+                fs::write(&ex_mods, json_data.dump()).expect("Failed to export mods");
+            }
+            if debug {
+                println!("Wrote mods to: {}", ex_mods);
             }
         }
         let mut _mysql_legacy: Vec<MysqlLegacy> = vec![];
@@ -75,6 +113,9 @@ fn main() {
             Err(a)=>  {
                 println!("{}", a);
             }
+        }
+        if debug {
+            println!("Obtained versions");
         }
         //End of MySQL
 
@@ -126,6 +167,12 @@ fn main() {
             //NOTE Mods download
             //json_export["mc"]["version"][&mysqlv.version]["global"]["wget"] =json::JsonValue::new_array();
         }
+        if let Some(ex_versions) = export_versions {
+            fs::write(&ex_versions, json_export.dump()).expect("Failed to export versions");
+            if debug {
+                println!("Wrote versions to: {}", ex_versions);
+            }
+        }
 
         //the logic behind this function is ported from the legacy client for consistency
         fn git_url(
@@ -161,17 +208,20 @@ fn main() {
             Err(true)
         }
 
-        //TODO
+        //NOTE
         println!("{:#}", json_export);
 
-    /*TODO
-    for valu in json_export["versions"].entries() {
-        let (v_name, _) = valu;
-        println!("{:?}", v_name);
-    }
-    */
+        /*NOTE
+        for valu in json_export["versions"].entries() {
+            let (v_name, _) = valu;
+            println!("{:?}", v_name);
+        }
+        */
+        if debug {
+            println!("DONE");
+        }
     } else {
-        println!("Must be URL encoded,\n accepted format:\n mysql://USERNAME:PASSWORD@IP/DATABASE_NAME [EXPORT_FOLDER_PATH]");
+        println!("Must be URL encoded,\n accepted format:\n mysql://USERNAME:PASSWORD@IP/DATABASE_NAME [ARGS]\n Em [file path]  exports a list of all mods\nEv [file path]    exports versions\nforge [link] will assign this version of forge to every version\n\nPS a simplistic debug parameter that gives a indication of what the program is doing\n");
     }
 }
 
