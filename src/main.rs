@@ -134,8 +134,14 @@ fn main() {
             repo: String,
         ) -> Result<json::JsonValue, bool> {
             let mut used_url = json::JsonValue::new_object();
-            used_url["url"][0] = format!("https://github.com/{}/{}.git", &db_name, repo).into();
+            used_url["url"][0] = format!("https://github.com/{}/{}.git", &db_name, &repo).into();
             used_url["function"] = "git".into();
+            match &repo as &str {
+                "MC_Configs" => used_url["path"] = "/config".into(),
+                "MC_Biome" => used_url["path"] = "/config/TerrainControl".into(),
+                "MC_Script" => used_url["path"] = "/scripts".into(),
+                _ => {}
+            }
             if in_url.to_lowercase().contains("github.com") {
                 in_url = in_url
                     .clone()
