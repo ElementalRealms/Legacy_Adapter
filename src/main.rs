@@ -4,13 +4,9 @@
 //TODO POST RELEASE
 //  -zip support
 
-//TODO
-//  -mods
-//  -clientmods
-//  -servermods
-
 extern crate json;
 extern crate mysql;
+use json::object;
 use mysql::Pool;
 use std::env::{args, current_dir};
 use std::io::{self, Write};
@@ -36,6 +32,7 @@ fn main() {
         let mut debug = false;
         let mut export_mods: Option<String> = None;
         let mut export_versions: Option<String> = None;
+        let mut mode = vec![vec![true, false]];
         for arg_num in 2..args().count() {
             match &args().nth(arg_num).unwrap() as &str {
                 "Em" => export_mods = args().nth(arg_num + 1),
@@ -44,9 +41,19 @@ fn main() {
                 "PS" | "ps" => {
                     debug = true;
                 }
+                "mode" => {
+                    mode = Vec::new();
+                    for _mode in args().nth(arg_num + 1).unwrap().split('-') {
+                        mode.push(vec![
+                            _mode.chars().nth(0).unwrap() == '1',
+                            _mode.chars().nth(1).unwrap() == '1',
+                        ])
+                    }
+                }
                 _ => {}
             }
         }
+
         if debug {
             println!("Enabled debug text");
         }
@@ -100,7 +107,7 @@ fn main() {
                         let (version, config, biome, script, badge, forge, stringmods, client, server, visable, dev): (_,_,_,_,_,_,String,_,_,bool,bool)= mysql::from_row(row);
                         let mut mods: Vec<ModEr> = vec![];
                         for modname in stringmods.split(","){
-                            for _mod in _mods_all.iter(){
+                            for _mod in &_mods_all{
                                 if _mod.name == modname{
                                     mods.push(ModEr{name: _mod.name.trim().to_string(), url: _mod.url.trim().to_string()});
                                 }
@@ -121,6 +128,9 @@ fn main() {
 
         let mut json_export = json::JsonValue::new_object();
         for mysqlv in _mysql_legacy {
+            if !mode.contains(&vec![mysqlv.visable, mysqlv.dev]) {
+                continue;
+            }
             json_export["mc"]["version"][&mysqlv.version]["global"] = json::JsonValue::new_array();
 
             if !(&mysqlv.config == "null" || &mysqlv.config == "") {
@@ -166,6 +176,16 @@ fn main() {
             }
             //NOTE Mods download
             //json_export["mc"]["version"][&mysqlv.version]["global"]["wget"] =json::JsonValue::new_array();
+
+            //TODO
+            for _mod in &mysqlv.mods {
+                json_export["mc"]["version"][&mysqlv.version]["global"]
+                    .push(json::array![json::object! {"test"=>"test"}])
+                    .unwrap();
+            }
+            if debug {
+                println!("Parsed {}", &mysqlv.version);
+            }
         }
         if let Some(ex_versions) = export_versions {
             fs::write(&ex_versions, json_export.dump()).expect("Failed to export versions");
@@ -221,7 +241,7 @@ fn main() {
             println!("DONE");
         }
     } else {
-        println!("Must be URL encoded,\n accepted format:\n mysql://USERNAME:PASSWORD@IP/DATABASE_NAME [ARGS]\n Em [file path]  exports a list of all mods\nEv [file path]    exports versions\nforge [link] will assign this version of forge to every version\n\nPS a simplistic debug parameter that gives a indication of what the program is doing\n");
+        println!("\nMust be URL encoded\n accepted format:\n mysql://USERNAME:PASSWORD@IP/DATABASE_NAME [ARGS]\n  Em [file path]  exports a list of all mods\n  Ev [file path]    exports versions\n  forge [link] will assign this version of forge to every version\n  PS a simplistic debug parameter that gives a indication of what the program is doing\n  mode 00-10-.. sets what versions should be included in export\n   10 (Visable: true Dev- false) is the defautl.\n   for exsample if you also wanted all dev versions: mode 10-11\n");
     }
 }
 
