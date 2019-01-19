@@ -41,7 +41,7 @@ fn main() {
                 "PS" | "ps" => {
                     debug = true;
                 }
-                "mode" => {
+                "mode" | "Mode" => {
                     mode = Vec::new();
                     for _mode in args().nth(arg_num + 1).unwrap().split('-') {
                         mode.push(vec![
@@ -177,10 +177,12 @@ fn main() {
             //NOTE Mods download
             //json_export["mc"]["version"][&mysqlv.version]["global"]["wget"] =json::JsonValue::new_array();
 
-            //TODO
+            //TODO UNTESTED
             for _mod in &mysqlv.mods {
                 json_export["mc"]["version"][&mysqlv.version]["global"]
-                    .push(json::array![json::object! {"test"=>"test"}])
+                    .push(json::array![
+                        json::object! {"url"=>_mod.url.clone(),"path"=>format!("mods/{}",&_mod.name)}
+                    ])
                     .unwrap();
             }
             if debug {
