@@ -1,8 +1,6 @@
 /*
     Developer note: The zip format is currently not being supported due to security concerns and priorities(may be supported later on)
 */
-//TODO POST RELEASE
-//  -zip support
 
 extern crate json;
 extern crate mysql;

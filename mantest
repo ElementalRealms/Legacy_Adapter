@@ -1,0 +1,20 @@
+.TH erealms legacy_adapter "2019-01-19"
+.SH NAME
+Elemental Realms Legacy Adapter \- used to convert mysql data into json
+.SH SYNOPSIS
+er_legacy_adapter 
+.B mysql://USERNAME:PASSWORD@IP/DATABASE_NAME
+.I [OPTIONS]
+.SH OPTIONS
+.IP "Em [file path]"
+exports a list of all mods
+.IP "Ev [file path]"
+exports versions
+.IP PS
+a simplistic debug parameter that gives a indication of what the program is doing
+.IP "mode [00-01-10-11]"
+ sets what versions should be included in export
+ 10 (Visable: true Dev- false) is the default.
+ e.g.
+ if you also wanted dev versions: 
+.B mode 10-11
