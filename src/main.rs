@@ -54,8 +54,6 @@ fn main() {
         if debug {
             println!("Enabled debug text");
         }
-        //NOTE
-        //  mysql://ermlpublicread:hmDmxuhheilgKXUWTjzC@db.elementalrealms.net/ElementalRealms
 
         let mut _mods_all: Vec<ModEr> = vec![];
         match Pool::new(&arg1) {
@@ -171,42 +169,46 @@ fn main() {
                     Err(_) => println!("Failed to add:{} to {}", &mysqlv.badge, &mysqlv.version),
                 }
             }
-            //NOTE Mods download
-            //json_export["mc"]["version"][&mysqlv.version]["global"]["wget"] =json::JsonValue::new_array();
 
-            //TODO UNTESTED
+            //global mods
             for _mod in &mysqlv.mods {
                 json_export["mc"]["version"][&mysqlv.version]["global"]
                     .push(json::array![
-                        json::object! {"url"=>_mod.url.clone(),"path"=>format!("mods/{}",&_mod.name)}
+                        json::object! {"function"=>"wget","url"=>_mod.url.clone(),"path"=>format!("mods/{}",&_mod.name)}
                     ])
                     .unwrap();
             }
-            //TODO UNTESTED
+            //server mods
+            json_export["mc"]["version"][&mysqlv.version]["server"] = json::JsonValue::new_array();
             for _mod in mysqlv.server.split(',') {
                 for _mod_all in &_mods_all {
                     if _mod_all.name == _mod {
                         json_export["mc"]["version"][&mysqlv.version]["server"].push(json::array![
-                        json::object! {"url"=>_mod_all.url.clone() as String,"path"=>format!("mods/{}",&_mod_all.name)}]).unwrap();
+                        json::object! {"function"=>"wget","url"=>_mod_all.url.clone() as String,"path"=>format!("mods/{}",&_mod_all.name)}]).unwrap();
                     }
                 }
             }
-            //TODO UNTESTED
+            //client mods
+            json_export["mc"]["version"][&mysqlv.version]["client"] = json::JsonValue::new_array();
             for _mod in mysqlv.client.split(',') {
                 let mut used_mod = json::JsonValue::new_object();
-
+                used_mod["function"] = "wget".into();
                 if _mod.ends_with("0") || _mod.ends_with("1") {
-                    let mut changed_mod = _mod.to_string();
-                    changed_mod.pop();
-                    used_mod["path"] = format!("mods/{}", changed_mod).into();
+                    let mut _mod = _mod.to_string();
+                    _mod.pop();
+                    used_mod["path"] = format!("mods/{}", _mod).into();
+                    for _mod_all in &_mods_all {
+                        if _mod_all.name == _mod {
+                            used_mod["url"] = _mod_all.url.clone().into();
+                        }
+                    }
                 } else {
                     used_mod["enable"] = false.into();
                     used_mod["path"] = format!("mods/{}", &_mod).into();
-                }
-
-                for _mod_all in &_mods_all {
-                    if _mod_all.name == _mod {
-                        used_mod["url"] = _mod_all.url.clone().into();
+                    for _mod_all in &_mods_all {
+                        if _mod_all.name == _mod {
+                            used_mod["url"] = _mod_all.url.clone().into();
+                        }
                     }
                 }
                 json_export["mc"]["version"][&mysqlv.version]["client"]
@@ -258,9 +260,6 @@ fn main() {
             }
             Err(true)
         }
-
-        //NOTE
-        println!("{:#}", json_export);
 
         /*NOTE
         for valu in json_export["versions"].entries() {

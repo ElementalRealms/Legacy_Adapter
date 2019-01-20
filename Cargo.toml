@@ -1,7 +1,7 @@
 ﻿[package]
 
 name = "elemental_realms_legacy_adapter"
-version = "0.0.100"
+version = "1.0.0"
 authors = [ "Elemental Realms <github.com/ElementalRealms>" ]
 
 [dependencies]
