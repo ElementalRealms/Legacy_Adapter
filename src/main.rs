@@ -6,9 +6,8 @@ extern crate json;
 extern crate mysql;
 use json::object;
 use mysql::Pool;
-use std::env::{args, current_dir};
-use std::io::{self, Write};
-use std::{fs, path::Path, vec::Vec};
+use std::env::args;
+use std::{fs, vec::Vec};
 
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -187,15 +186,34 @@ fn main() {
             for _mod in mysqlv.server.split(',') {
                 for _mod_all in &_mods_all {
                     if _mod_all.name == _mod {
-                        json_export["mc"]["version"][&mysqlv.version]["global"]
-                    .push(json::array![
-                        json::object! {"url"=>_mod_all.url.clone() as String,"path"=>format!("mods/{}",&_mod_all.name)}
-                    ])
-                    .unwrap();
+                        json_export["mc"]["version"][&mysqlv.version]["server"].push(json::array![
+                        json::object! {"url"=>_mod_all.url.clone() as String,"path"=>format!("mods/{}",&_mod_all.name)}]).unwrap();
                     }
                 }
             }
-            //TODO CLIENT MODS
+            //TODO UNTESTED
+            for _mod in mysqlv.client.split(',') {
+                let mut used_mod = json::JsonValue::new_object();
+
+                if _mod.ends_with("0") || _mod.ends_with("1") {
+                    let mut changed_mod = _mod.to_string();
+                    changed_mod.pop();
+                    used_mod["path"] = format!("mods/{}", changed_mod).into();
+                } else {
+                    used_mod["enable"] = false.into();
+                    used_mod["path"] = format!("mods/{}", &_mod).into();
+                }
+
+                for _mod_all in &_mods_all {
+                    if _mod_all.name == _mod {
+                        used_mod["url"] = _mod_all.url.clone().into();
+                    }
+                }
+                json_export["mc"]["version"][&mysqlv.version]["client"]
+                    .push(json::array![used_mod])
+                    .unwrap();
+            }
+
             if debug {
                 println!("Parsed {}", &mysqlv.version);
             }
