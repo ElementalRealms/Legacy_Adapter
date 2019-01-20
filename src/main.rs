@@ -35,7 +35,7 @@ fn main() {
             match &args().nth(arg_num).unwrap() as &str {
                 "Em" => export_mods = args().nth(arg_num + 1),
                 "Ev" => export_versions = args().nth(arg_num + 1),
-                "forge" | "Forge" => {} //TODO
+                "forge" | "Forge" => {} //TODO maybe one day
                 "PS" | "ps" => {
                     debug = true;
                 }
@@ -183,6 +183,19 @@ fn main() {
                     ])
                     .unwrap();
             }
+            //TODO UNTESTED
+            for _mod in mysqlv.server.split(',') {
+                for _mod_all in &_mods_all {
+                    if _mod_all.name == _mod {
+                        json_export["mc"]["version"][&mysqlv.version]["global"]
+                    .push(json::array![
+                        json::object! {"url"=>_mod_all.url.clone() as String,"path"=>format!("mods/{}",&_mod_all.name)}
+                    ])
+                    .unwrap();
+                    }
+                }
+            }
+            //TODO CLIENT MODS
             if debug {
                 println!("Parsed {}", &mysqlv.version);
             }
